@@ -1,0 +1,62 @@
+Index: src/main/java/project/config/SpringConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package project.config;\r\n\r\nimport org.springframework.beans.factory.annotation.Autowired;\r\nimport org.springframework.context.ApplicationContext;\r\nimport org.springframework.context.annotation.Bean;\r\nimport org.springframework.context.annotation.ComponentScan;\r\nimport org.springframework.context.annotation.Configuration;\r\nimport org.springframework.web.servlet.config.annotation.EnableWebMvc;\r\nimport org.springframework.web.servlet.config.annotation.ViewResolverRegistry;\r\nimport org.springframework.web.servlet.config.annotation.WebMvcConfigurer;\r\nimport org.thymeleaf.spring6.SpringTemplateEngine;\r\nimport org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;\r\nimport org.thymeleaf.spring6.view.ThymeleafViewResolver;\r\n\r\n@Configuration\r\n@ComponentScan(\"project\")\r\n@EnableWebMvc\r\npublic class SpringConfig implements WebMvcConfigurer {\r\n    private final ApplicationContext applicationContext;\r\n\r\n    @Autowired\r\n    public SpringConfig(ApplicationContext applicationContext) {\r\n        this.applicationContext = applicationContext;\r\n    }\r\n    @Bean\r\n    public SpringResourceTemplateResolver templateResolver(){\r\n        SpringResourceTemplateResolver templateResolver =new SpringResourceTemplateResolver();\r\n        templateResolver.setApplicationContext(applicationContext);\r\n        templateResolver.setPrefix(\"/WEB-INF/views/\");\r\n        templateResolver.setSuffix(\".html\");\r\n        return templateResolver;\r\n    }\r\n    @Bean\r\n    public SpringTemplateEngine templateEngine(){\r\n        SpringTemplateEngine templateEngine = new SpringTemplateEngine();\r\n        templateEngine.setTemplateResolver(templateResolver());\r\n        templateEngine.setEnableSpringELCompiler(true);\r\n        return templateEngine;\r\n    }\r\n\r\n    @Override\r\n    public void configureViewResolvers(ViewResolverRegistry registry) {\r\n        ThymeleafViewResolver resolver = new ThymeleafViewResolver();\r\n        resolver.setTemplateEngine(templateEngine());\r\n        registry.viewResolver(resolver);\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/project/config/SpringConfig.java b/src/main/java/project/config/SpringConfig.java
+--- a/src/main/java/project/config/SpringConfig.java	
++++ b/src/main/java/project/config/SpringConfig.java	
+@@ -5,6 +5,10 @@
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.ComponentScan;
+ import org.springframework.context.annotation.Configuration;
++import org.springframework.context.annotation.PropertySource;
++import org.springframework.core.env.Environment;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.jdbc.datasource.DriverManagerDataSource;
+ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+ import org.springframework.web.servlet.config.annotation.ViewResolverRegistry;
+ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+@@ -12,15 +16,21 @@
+ import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
+ import org.thymeleaf.spring6.view.ThymeleafViewResolver;
+ 
++import javax.sql.DataSource;
++import java.util.Objects;
++
+ @Configuration
+ @ComponentScan("project")
+ @EnableWebMvc
++@PropertySource("classpath:database.properties")
+ public class SpringConfig implements WebMvcConfigurer {
+     private final ApplicationContext applicationContext;
++    private final Environment environment;
+ 
+     @Autowired
+-    public SpringConfig(ApplicationContext applicationContext) {
++    public SpringConfig(ApplicationContext applicationContext, Environment environment) {
+         this.applicationContext = applicationContext;
++        this.environment = environment;
+     }
+     @Bean
+     public SpringResourceTemplateResolver templateResolver(){
+@@ -44,4 +54,17 @@
+         resolver.setTemplateEngine(templateEngine());
+         registry.viewResolver(resolver);
+     }
++    @Bean
++    public DataSource dataSource(){
++        DriverManagerDataSource dataSource = new DriverManagerDataSource();
++        dataSource.setDriverClassName(Objects.requireNonNull(environment.getProperty("driver")));
++        dataSource.setUrl(environment.getProperty("url"));
++        dataSource.setUsername(environment.getProperty("username"));
++        dataSource.setPassword(environment.getProperty("password"));
++        return dataSource;
++    }
++    @Bean
++    public JdbcTemplate jdbcTemplate(){
++        return new JdbcTemplate(dataSource());
++    }
+ }
